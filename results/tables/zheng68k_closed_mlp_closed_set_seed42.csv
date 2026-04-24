@@ -1,0 +1,2 @@
+accuracy,macro_f1,weighted_f1,balanced_accuracy,dataset,embedding,split,mode,classifier,seed
+0.6613636363636364,0.4982331595795202,0.6503135080546254,0.4806056079782807,zheng68k,zheng68k_pca50.npy,closed_set_seed42.npz,closed,mlp,42

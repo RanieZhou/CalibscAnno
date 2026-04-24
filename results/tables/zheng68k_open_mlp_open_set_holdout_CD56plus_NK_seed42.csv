@@ -1,0 +1,2 @@
+known_accuracy,known_macro_f1,known_weighted_f1,unknown_auroc,unknown_auprc,holdout_cell_type,n_known_test,n_unknown_test,dataset,embedding,split,mode,classifier,seed
+0.6640557006092254,0.47993012895985643,0.6481207605891981,0.21804831562590232,0.2881452412220131,CD56+ NK,1149,853,zheng68k,zheng68k_pca50.npy,open_set_holdout_CD56plus_NK_seed42.npz,open,mlp,42
