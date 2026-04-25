@@ -16,6 +16,18 @@ Verify CUDA:
 python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
 ```
 
+If the server uses a Blackwell GPU, also verify that PyTorch was built with
+Blackwell architecture support:
+
+```bash
+python -c "import torch; print(torch.__version__, torch.version.cuda); print(torch.cuda.get_device_name(0)); print(torch.cuda.get_arch_list())"
+```
+
+Do not launch extraction if the GPU is `sm_120` but `sm_120` is missing from
+`torch.cuda.get_arch_list()`. In that case, reinstall a PyTorch build that
+supports Blackwell, following the current PyTorch install selector for the
+server's CUDA/driver stack.
+
 ## 2. Place model checkpoint
 
 Download the scFoundation checkpoint and place it at:
