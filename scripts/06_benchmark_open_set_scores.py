@@ -296,6 +296,7 @@ def run_split(args, X, y, split_path):
     test_idx = split["test_idx"]
     is_unknown = split["is_unknown_test"].astype(bool)
     holdout = str(split["holdout_cell_type"]) if "holdout_cell_type" in split else "unknown"
+    split_seed = int(split["seed"]) if "seed" in split else np.nan
 
     X_train, y_train = X[train_idx], y[train_idx]
     X_val = X[val_idx]
@@ -352,11 +353,52 @@ def run_split(args, X, y, split_path):
             "n_known_test": int((~is_unknown).sum()),
             "n_unknown_test": int(is_unknown.sum()),
             "fit_score_seconds": family_seconds.get(family if family != "prototype" else "proto", np.nan),
-            "seed": int(args.seed),
+            "split_seed": split_seed,
+            "model_seed": int(args.seed),
         })
         rows.append(row)
 
     return rows
+
+
+def summarize_benchmark(output_df: pd.DataFrame):
+    metrics = [
+        "known_accuracy",
+        "unknown_auroc",
+        "unknown_auprc",
+        "fpr_at_95_tpr",
+        "known_coverage_at_val95",
+        "unknown_recall_at_val95",
+        "accepted_known_accuracy_at_val95",
+        "known_coverage_at_val90",
+        "unknown_recall_at_val90",
+        "accepted_known_accuracy_at_val90",
+        "known_coverage_at_val80",
+        "unknown_recall_at_val80",
+        "accepted_known_accuracy_at_val80",
+    ]
+    group_cols = ["dataset", "embedding", "holdout_cell_type", "score_family", "score_method"]
+    summary = (
+        output_df
+        .groupby(group_cols, dropna=False)[metrics]
+        .agg(["mean", "std"])
+        .reset_index()
+    )
+    summary.columns = [
+        "_".join(col).rstrip("_") if isinstance(col, tuple) else col
+        for col in summary.columns
+    ]
+
+    n_splits = (
+        output_df
+        .groupby(group_cols, dropna=False)["split_seed"]
+        .nunique()
+        .reset_index(name="n_split_seeds")
+    )
+    summary = summary.merge(n_splits, on=group_cols, how="left")
+
+    sort_cols = ["holdout_cell_type", "unknown_auroc_mean", "unknown_auprc_mean"]
+    return summary.sort_values(sort_cols, ascending=[True, False, False]).reset_index(drop=True)
 
 
 def main():
@@ -367,6 +409,11 @@ def main():
         parser.add_argument("--embedding", type=Path, default=Path("data/embeddings/zheng68k_pca50.npy"))
         parser.add_argument("--splits_dir", type=Path, default=Path("data/splits/zheng68k"))
         parser.add_argument("--output", type=Path, default=Path("results/tables/open_set_score_benchmark.csv"))
+        parser.add_argument(
+            "--summary_output",
+            type=Path,
+            default=Path("results/tables/open_set_score_benchmark_summary.csv"),
+        )
         parser.add_argument("--seed", type=int, default=42)
         parser.add_argument("--knn_neighbors", type=int, default=10)
         args = parser.parse_args()
@@ -396,11 +443,16 @@ def main():
         output_df = output_df.sort_values(["holdout_cell_type", "score_family", "score_method"]).reset_index(drop=True)
         args.output.parent.mkdir(parents=True, exist_ok=True)
         output_df.to_csv(args.output, index=False)
+        summary_df = summarize_benchmark(output_df)
+        args.summary_output.parent.mkdir(parents=True, exist_ok=True)
+        summary_df.to_csv(args.summary_output, index=False)
 
         print(f"Saved score benchmark to: {args.output}")
+        print(f"Saved score benchmark summary to: {args.summary_output}")
         display_cols = [
             "holdout_cell_type",
             "score_method",
+            "split_seed",
             "known_accuracy",
             "unknown_auroc",
             "unknown_auprc",
@@ -410,19 +462,32 @@ def main():
         print(output_df[display_cols].to_string(index=False))
 
         best_by_holdout = (
-            output_df.sort_values(["holdout_cell_type", "unknown_auroc"], ascending=[True, False])
+            summary_df.sort_values(["holdout_cell_type", "unknown_auroc_mean"], ascending=[True, False])
             .groupby("holdout_cell_type")
             .head(3)
         )
-        print("\nTop 3 by AUROC per holdout:")
-        print(best_by_holdout[["holdout_cell_type", "score_method", "unknown_auroc", "unknown_auprc"]].to_string(index=False))
+        print("\nTop 3 by mean AUROC per holdout:")
+        print(
+            best_by_holdout[
+                [
+                    "holdout_cell_type",
+                    "score_method",
+                    "unknown_auroc_mean",
+                    "unknown_auroc_std",
+                    "unknown_auprc_mean",
+                    "n_split_seeds",
+                ]
+            ].to_string(index=False)
+        )
 
         metadata = {
             "dataset": args.dataset,
             "embedding": str(args.embedding),
             "splits": [str(path) for path in split_paths],
             "output": str(args.output),
+            "summary_output": str(args.summary_output),
             "n_rows": int(len(output_df)),
+            "n_summary_rows": int(len(summary_df)),
             "started_at_utc": started_at,
             "finished_at_utc": finished_at,
             "runtime_seconds_total": float(elapsed()),
