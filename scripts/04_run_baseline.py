@@ -14,6 +14,8 @@ from sklearn.metrics import (
     average_precision_score,
 )
 
+from experiment_utils import peak_memory_mb, runtime_context, timed_block, utc_now_iso
+
 
 def load_data(dataset, embedding_path):
     emb = np.load(embedding_path)
@@ -145,17 +147,25 @@ def run_closed_set(args, X, y):
     X_test, y_test = X[test_idx], y[test_idx]
 
     if args.classifier == "mlp":
-        scaler, clf = train_mlp(X_train, y_train, seed=args.seed)
-        y_pred, _ = predict_mlp(scaler, clf, X_test)
+        with timed_block() as fit_elapsed:
+            scaler, clf = train_mlp(X_train, y_train, seed=args.seed)
+        with timed_block() as predict_elapsed:
+            y_pred, _ = predict_mlp(scaler, clf, X_test)
 
     elif args.classifier == "prototype":
-        scaler, classes, prototypes = train_prototype(X_train, y_train)
-        y_pred, _ = predict_prototype(scaler, classes, prototypes, X_test)
+        with timed_block() as fit_elapsed:
+            scaler, classes, prototypes = train_prototype(X_train, y_train)
+        with timed_block() as predict_elapsed:
+            y_pred, _ = predict_prototype(scaler, classes, prototypes, X_test)
 
     else:
         raise ValueError(f"Unknown classifier: {args.classifier}")
 
     results = evaluate_closed_set(y_test, y_pred)
+    results["fit_seconds"] = float(fit_elapsed())
+    results["predict_seconds"] = float(predict_elapsed())
+    results["n_train"] = int(len(train_idx))
+    results["n_test"] = int(len(test_idx))
     return results
 
 
@@ -170,12 +180,16 @@ def run_open_set(args, X, y):
     X_test, y_test = X[test_idx], y[test_idx]
 
     if args.classifier == "mlp":
-        scaler, clf = train_mlp(X_train, y_train, seed=args.seed)
-        y_pred, unknown_score = predict_mlp(scaler, clf, X_test)
+        with timed_block() as fit_elapsed:
+            scaler, clf = train_mlp(X_train, y_train, seed=args.seed)
+        with timed_block() as predict_elapsed:
+            y_pred, unknown_score = predict_mlp(scaler, clf, X_test)
 
     elif args.classifier == "prototype":
-        scaler, classes, prototypes = train_prototype(X_train, y_train)
-        y_pred, unknown_score = predict_prototype(scaler, classes, prototypes, X_test)
+        with timed_block() as fit_elapsed:
+            scaler, classes, prototypes = train_prototype(X_train, y_train)
+        with timed_block() as predict_elapsed:
+            y_pred, unknown_score = predict_prototype(scaler, classes, prototypes, X_test)
 
     else:
         raise ValueError(f"Unknown classifier: {args.classifier}")
@@ -197,11 +211,21 @@ def run_open_set(args, X, y):
     results["holdout_cell_type"] = holdout
     results["n_known_test"] = int(known_mask.sum())
     results["n_unknown_test"] = int(is_unknown_test.sum())
+    results["fit_seconds"] = float(fit_elapsed())
+    results["predict_seconds"] = float(predict_elapsed())
+    results["n_train"] = int(len(train_idx))
+    results["n_test"] = int(len(test_idx))
 
     return results
 
 
 def main():
+    run_started_at = utc_now_iso()
+    with timed_block() as total_elapsed:
+        run_main(run_started_at, total_elapsed)
+
+
+def run_main(run_started_at, total_elapsed):
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=str, default="zheng68k")
     parser.add_argument("--embedding", type=str, required=True)
@@ -232,7 +256,12 @@ def main():
         "mode": args.mode,
         "classifier": args.classifier,
         "seed": args.seed,
+        "runtime_seconds": float(total_elapsed()),
+        "peak_memory_mb": peak_memory_mb(),
+        "started_at_utc": run_started_at,
+        "finished_at_utc": utc_now_iso(),
     })
+    results.update(runtime_context())
 
     print("\nResults:")
     print(json.dumps(results, indent=2, ensure_ascii=False))

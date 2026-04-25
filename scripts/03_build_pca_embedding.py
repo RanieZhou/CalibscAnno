@@ -6,6 +6,8 @@ from scipy import sparse
 from sklearn.decomposition import TruncatedSVD
 from sklearn.preprocessing import StandardScaler
 
+from experiment_utils import append_row_csv, peak_memory_mb, runtime_context, timed_block, utc_now_iso
+
 
 def normalize_log1p(X):
     """
@@ -41,6 +43,12 @@ def normalize_log1p(X):
 
 
 def main():
+    run_started_at = utc_now_iso()
+    with timed_block() as total_elapsed:
+        run_main(run_started_at, total_elapsed)
+
+
+def run_main(run_started_at, total_elapsed):
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=str, default="zheng68k")
     parser.add_argument("--n_components", type=int, default=50)
@@ -61,23 +69,48 @@ def main():
 
     print(f"Running TruncatedSVD with n_components={args.n_components}")
 
-    svd = TruncatedSVD(
-        n_components=args.n_components,
-        random_state=args.seed,
-    )
+    with timed_block() as svd_elapsed:
+        svd = TruncatedSVD(
+            n_components=args.n_components,
+            random_state=args.seed,
+        )
 
-    emb = svd.fit_transform(X)
+        emb = svd.fit_transform(X)
 
     print("Explained variance ratio sum:", svd.explained_variance_ratio_.sum())
 
-    scaler = StandardScaler()
-    emb = scaler.fit_transform(emb).astype(np.float32)
+    with timed_block() as scale_elapsed:
+        scaler = StandardScaler()
+        emb = scaler.fit_transform(emb).astype(np.float32)
 
     out_path = out_dir / f"{args.dataset}_pca{args.n_components}.npy"
     np.save(out_path, emb)
 
     print(f"Saved embedding to: {out_path}")
     print("embedding shape:", emb.shape)
+
+    run_row = {
+        "run_type": "pca_embedding",
+        "dataset": args.dataset,
+        "embedding": out_path.name,
+        "output_path": str(out_path),
+        "n_cells": int(adata.n_obs),
+        "n_genes": int(adata.n_vars),
+        "n_components": int(args.n_components),
+        "seed": int(args.seed),
+        "explained_variance_ratio_sum": float(svd.explained_variance_ratio_.sum()),
+        "svd_seconds": float(svd_elapsed()),
+        "scale_seconds": float(scale_elapsed()),
+        "runtime_seconds": float(total_elapsed()),
+        "peak_memory_mb": peak_memory_mb(),
+        "started_at_utc": run_started_at,
+        "finished_at_utc": utc_now_iso(),
+    }
+    run_row.update(runtime_context())
+
+    metadata_path = Path("results/tables/embedding_runs.csv")
+    append_row_csv(metadata_path, run_row)
+    print(f"Saved run metadata to: {metadata_path}")
 
 
 if __name__ == "__main__":
