@@ -1,0 +1,13 @@
+{
+  "source_tables": [
+    "results/tables/open_set_score_benchmark_pca_seed0-4_summary.csv",
+    "results/tables/open_set_score_benchmark_scfoundation_summary.csv"
+  ],
+  "risk_table": "results/tables/risk_coverage_summary.csv",
+  "figure_png": "results/figures/risk_coverage_summary.png",
+  "figure_pdf": "results/figures/risk_coverage_summary.pdf",
+  "generating_script": "scripts/11_build_risk_coverage_artifacts.py",
+  "surface_class": "paper_main",
+  "main_claim": "Diagonal Mahalanobis gives the strongest unknown recall at matched validation-calibrated known coverage, especially with scFoundation embeddings.",
+  "review_note": "Revised after visual inspection: reduced title size and expanded y-axis headroom to avoid clipping the strongest scFoundation curve."
+}

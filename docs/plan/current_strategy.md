@@ -59,7 +59,15 @@ Paper-facing result tables:
 results/tables/embedding_method_comparison.csv
 results/tables/paper_claim_snapshot.csv
 results/tables/scfoundation_embedding_run_metadata.csv
+results/tables/risk_coverage_summary.csv
 results/tables/calibscanno_v0_main_results_scfoundation.csv
+```
+
+Paper-facing figure draft:
+
+```text
+results/figures/risk_coverage_summary.png
+results/figures/risk_coverage_summary.pdf
 ```
 
 Average unknown AUROC across the three Zheng68K holdouts:
@@ -146,9 +154,8 @@ Immediate next steps:
 ```text
 1. Add a compact CalibscAnno-v1 summary that treats diagonal Mahalanobis as the
    main method and class-z as an ablation.
-2. Generate risk-coverage tables/plots for PCA50 and scFoundation.
-3. Add one external validation dataset if runtime/data access is manageable.
-4. Only after that, start writing the Results section and figures.
+2. Add one external validation dataset if runtime/data access is manageable.
+3. Only after that, start writing the Results section and figures.
 ```
 
 Decision rule:
