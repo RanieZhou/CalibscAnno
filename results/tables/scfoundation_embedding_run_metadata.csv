@@ -1,0 +1,3 @@
+dataset,input_n_cells,input_n_genes,output_path,pool_type,tgthighres,version,status,runtime_seconds,peak_gpu_memory_mb_nvidia_smi,started_at_utc,finished_at_utc
+zheng68k,6595,19264,data/embeddings/zheng68k_scfoundation_all_t4_ce.npy,all,t4,ce,completed,105.46301786200002,4089.0,2026-04-25T07:12:41+00:00,2026-04-25T07:14:27+00:00
+segerstolpe,427,19264,data/embeddings/segerstolpe_scfoundation_all_t4_ce.npy,all,t4,ce,completed,60.294684039,42987.0,2026-04-25T07:16:55+00:00,2026-04-25T07:17:55+00:00
