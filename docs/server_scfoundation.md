@@ -18,10 +18,28 @@ python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
 
 ## 2. Place model checkpoint
 
-Download the scFoundation checkpoint according to the upstream instructions and place it at:
+Download the scFoundation checkpoint and place it at:
 
 ```text
 external/scFoundation/model/models/models.ckpt
+```
+
+The most robust option is to use the Python API, because the `hf` CLI can fail
+when `huggingface_hub` and `typer` versions are mismatched:
+
+```bash
+mkdir -p external/scFoundation/model/models
+python -c "from huggingface_hub import hf_hub_download; print(hf_hub_download(repo_id='genbio-ai/scFoundation', filename='models.ckpt', local_dir='external/scFoundation/model/models'))"
+ls -lh external/scFoundation/model/models/models.ckpt
+```
+
+If the `hf` CLI is known to work in the active environment, this equivalent
+command is also fine:
+
+```bash
+hf download genbio-ai/scFoundation models.ckpt \
+  --local-dir external/scFoundation/model/models \
+  --local-dir-use-symlinks False
 ```
 
 The wrapper checks this path before launching extraction.

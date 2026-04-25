@@ -1,5 +1,6 @@
 data/
 external/scFoundation/annotation/data/
+external/scFoundation/model/models/
 .venv/
 __pycache__/
 *.py[cod]
