@@ -1,0 +1,2 @@
+run_type,dataset,embedding,output_path,n_cells,n_genes,n_components,seed,explained_variance_ratio_sum,svd_seconds,scale_seconds,runtime_seconds,peak_memory_mb,started_at_utc,finished_at_utc,python_version,platform,pid
+pca_embedding,zheng68k,zheng68k_pca50.npy,data/embeddings/zheng68k_pca50.npy,6595,19264,50,42,0.08594392985105515,0.5637260410003364,0.0020336249726824462,1.160628290992463,1676.8125,2026-04-25T05:01:11+00:00,2026-04-25T05:01:12+00:00,3.11.0,macOS-15.3-arm64-arm-64bit,78110
